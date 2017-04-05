@@ -7,10 +7,10 @@ This app solves my problem by allowing a user to send a message (passcodes optio
 Most of my work is based on [this project](https://github.com/awslabs/lambda-apigateway-twilio-tutorial).  
 
 ## Spyrk
-I use [spyrk](https://github.com/Alidron/spyrk) to connect to the Particle Core and tell it when to close/open the relay. Closing the relay is the same
+I use [spyrk](https://github.com/Alidron/spyrk) to connect to the Particle Core and tell it when to close/open the relay. I have the two wires that connect to the "Door" button on my intercom also running into one of the simple mechanical relays - when the relay is closed, it's the same effect as pushing the button (the building's front door gets buzzed open).
 
 ## Twilio
-My Lambda uses the [Twilio REST API](https://github.com/twilio/twilio-python/) Python library to send a message.
+My Lambda uses the [Twilio REST API](https://github.com/twilio/twilio-python/) Python library to send a message to the user, letting them know the door is about to open (or, if you've implemented a blacklist/passcode, telling them they can't come in).
 
 ## AWS
 ### Lambda
