@@ -31,14 +31,22 @@ def number_lookup(from_number):
         )
     # new phone, who dis?
     if response_dynamo['Count'] == 0:
-        table_users.put_item(Item={'fromNumber': from_number, 'use_count': 1})
+        table_users.put_item(Item={'fromNumber': from_number, 'use_count': 1, 'name': 'stranger'})
         name = "stranger"
         use_count = 1
     else:
         # yes, I manually enter the names
-        name      = response_dynamo['Items'][0]['name']
+        try:
+            name = response_dynamo['Items'][0]['name']
+        except NameError:
+            print("Error finding name")
+
         # how many times have they used the robot?
-        use_count = response_dynamo['Items'][0]['use_count']
+        try:
+            use_count = response_dynamo['Items'][0]['use_count']
+        except NameError:
+            print("Error finding use_count")
+
         # increment the use_count in Dynamo
         use_count += 1
         table_users.update_item(
