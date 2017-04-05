@@ -2,7 +2,14 @@
 
 This app uses [Twilio](https://www.twilio.com/) to ping a [Particle Core](https://www.particle.io/) with an attached relay, buzzing the building's front door open. A user sends a message (passcodes optional) using SMS to a Twilio phone number which sends a request to an Amazon API Gateway endpoint that triggers a Lambda function. This app uses AWS Lambda, API Gateway, and DynamoDB. Most of my work is based on [this project](https://github.com/awslabs/lambda-apigateway-twilio-tutorial).  
 
-### AWS Lambda
+## Spyrk
+I use [spyrk](https://github.com/Alidron/spyrk) to connect to the Particle Core.
+
+## Twilio
+My Lambda uses the [Twilio REST API](https://github.com/twilio/twilio-python/) Python library to send a message.
+
+## AWS
+### Lambda
 [Lambda](https://aws.amazon.com/lambda/) is a compute service that runs your code in response to events. Events are triggered or invoked by resources in your AWS environment or via API Gateway. Here our Lambda function is triggered by an API Gateway endpoint that Twilio hits after an SMS is received. The Lambda function is responsible for hitting the Particle Core and returning a response to Twilio.
 
 ### Amazon API Gateway
@@ -11,13 +18,7 @@ This app uses [Twilio](https://www.twilio.com/) to ping a [Particle Core](https:
 ### Amazon DynamoDB & Amazon S3
 [DynamoDB](https://aws.amazon.com/dynamodb/) is Amazon's non-relational database service. This app leverages DynamoDB to store user data and creds (at least for now).
 
-### Spyrk
-I use [spyrk](https://github.com/Alidron/spyrk) to connect to the Particle Core.
-
-### Twilio
-My Lambda uses the [Twilio REST API](https://github.com/twilio/twilio-python/) Python library to send a message.
-
-### TODO
+## TODO
 + Move to [Serverless Application Model](https://github.com/awslabs/serverless-application-model)
 + Consider some actual security
 + Additional validation
