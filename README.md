@@ -11,6 +11,12 @@ This app uses [Twilio](https://www.twilio.com/) to ping a [Particle Core](https:
 ### Amazon DynamoDB & Amazon S3
 [DynamoDB](https://aws.amazon.com/dynamodb/) is Amazon's non-relational database service. This app leverages DynamoDB to store user data and creds (at least for now).
 
+### Spyrk
+I use [spyrk](https://github.com/Alidron/spyrk) to connect to the Particle Core.
+
+### Twilio
+My Lambda uses the [Twilio REST API](https://github.com/twilio/twilio-python/) Python library to send a message.
+
 ### TODO
 + Move to [Serverless Application Model](https://github.com/awslabs/serverless-application-model)
 + Consider some actual security
