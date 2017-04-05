@@ -17,6 +17,7 @@ creds_dynamo = table_users.query(
     )
 TWILIO_SID   = creds_dynamo['Items'][0]['account_sid']   # Twilio SID
 TWILIO_TOKEN = creds_dynamo['Items'][0]['auth_token']    # Twilio Token
+TWILIO_NUM   = creds_dynamo['Items'][0]['twil_num']      # Twilio Number
 ACCESS_TOKEN = creds_dynamo['Items'][0]['ACCESS_TOKEN']  # Spark Token
 SET_SECURE   = creds_dynamo['Items'][0]['SetSecure']     # req passphrase?
 PASSPHRASE   = creds_dynamo['Items'][0]['passphrase']    # the magic word
@@ -57,8 +58,15 @@ def number_lookup(from_number):
             )
     return name, use_count
 
-def open_sesame():
+def open_sesame(from_num, name):
     print("Trying the door now.")
+    txt_body = "The door should open for about 5 seconds, " + str(name)
+    message = client.messages.create(
+        body=txt_body,
+        to=from_num,
+        from_=TWILIO_NUM,
+        )
+    time.sleep(1)
     # open the door! for god's sake, open the door!
     spark.DoorbellCore.relay('R1', 'HIGH')
     # wait... wait for it....
@@ -81,44 +89,16 @@ def lambda_handler(event, context):
     print("Name    : " + name)
     print("Message : " + message)
 
-    # if the SET_SECURE bit is on, require a passphrase to open
+    # if the crappy SET_SECURE bit is on, require a simple passphrase to open
     if SET_SECURE == 'True':
         if PASSPHRASE not in message: # bad passphrase, do nothing
             print("***PASSPHRASE NOT PRESENT***")
             twilio_resp = "Sorry, you didn't use the passphrase."
             return twilio_resp
 
-    open_sesame()
+    #function to talk to the particle core and open the door
+    open_sesame(from_number, name)
 
-    if name == 'Anderson':
-        Ando = [
-            "God dammit Anderson, what do you want now?",
-            "Who invited this douche?",
-            "Great, there goes the neighborhood.",
-            "Arturo is going to be mad jealous.",
-            "Fucking Anderson is here again?",
-            "Quick, hide the minorities!"
-        ]
-        twilio_resp = random.choice(Ando)
+    twilio_resp = "Thanks for visiting!" + "\n\nUse Count: " +str(use_count)
 
-    elif name == 'Allison':
-        Allison = [
-            "Welcome home, queen!",
-            "Hey there good lookin'",
-            "Did you forget your key?"
-        ]
-        twilio_resp = random.choice(Allison)
-
-    elif name == 'Serg':
-        Serg = [
-            "YASSSSSSSSSSSS!",
-            "What up neighbor?",
-            "Welcome home buddy!"
-        ]
-        twilio_resp = random.choice(Serg)
-
-    else:
-        twilio_resp = "The door should open for about 5 seconds, " + str(name)
-
-    twilio_resp = twilio_resp + "\n\nUse Count: " +str(use_count)
     return twilio_resp
