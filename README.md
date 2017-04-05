@@ -2,7 +2,7 @@
 
 [Menshen](https://en.wikipedia.org/wiki/Menshen), or door gods, are divine guardians of doors and gates in Chinese folk religions, used to protect against evil influences or to encourage the entrance of positive ones. This app is designed to solve a personal annoyance - I live an old New York brownstone with a [typical 4-wire intercom](http://www.intercom-parts.com/IR204-Intercom.html) and a high-security lock on the common front door. I have a very limited number of keys, so if I'm not in the apartment to buzz a guest/cleaning/delivery person inside, the only option is to give them my key.  
 
-This app is designed to solve my particular problem. A user sends a message (passcodes optional) via SMS to my [Twilio](https://www.twilio.com/) number, which in turn sends a request to an Amazon API Gateway endpoint that triggers a Lambda function. The Lambda function communicates via REST API with a [Particle Core](https://www.particle.io/) in my apartment, which uses an [attached relay](https://docs.particle.io/datasheets/particle-shields/#relay-shield) that's wired to my intercom to buzz my building's front door open.
+This app solves my problem by allowing a user to send a message (passcodes optional) via SMS to my [Twilio](https://www.twilio.com/) number, which in turn sends a request to an Amazon API Gateway endpoint that triggers a Lambda function. The Lambda function communicates via REST API with a [Particle Core](https://www.particle.io/) in my apartment, which uses an [attached relay](https://docs.particle.io/datasheets/particle-shields/#relay-shield) that's wired to my intercom to buzz my building's front door open.
 
 Most of my work is based on [this project](https://github.com/awslabs/lambda-apigateway-twilio-tutorial).  
 
