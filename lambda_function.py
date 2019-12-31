@@ -19,6 +19,7 @@ TWILIO_SID   = creds_dynamo['Items'][0]['account_sid']   # Twilio SID
 TWILIO_TOKEN = creds_dynamo['Items'][0]['auth_token']    # Twilio Token
 TWILIO_NUM   = creds_dynamo['Items'][0]['twil_num']      # Twilio Number
 ACCESS_TOKEN = creds_dynamo['Items'][0]['ACCESS_TOKEN']  # Spark Token
+SUPPORT_NUM  = creds_dynamo['Items'][0]['sup_num']       # Support number
 SET_SECURE   = creds_dynamo['Items'][0]['SetSecure']     # req passphrase?
 PASSPHRASE   = creds_dynamo['Items'][0]['passphrase']    # the magic word
 
@@ -40,13 +41,13 @@ def number_lookup(from_number):
         try:
             name = response_dynamo['Items'][0]['name']
         except NameError:
-            print("Error finding name")
+            print("Error finding name for " + str(from_number))
 
         # how many times have they used the robot?
         try:
             use_count = response_dynamo['Items'][0]['use_count']
         except NameError:
-            print("Error finding use_count")
+            print("Error finding use_count for " + str(from_number))
 
         # increment the use_count in Dynamo
         use_count += 1
@@ -59,23 +60,38 @@ def number_lookup(from_number):
     return name, use_count
 
 def open_sesame(from_num, name):
-    print("Trying the door now.")
+    print("Trying the door now")
     txt_body = "The door should open for about 5 seconds, " + str(name)
     message = client.messages.create(
         body=txt_body,
         to=from_num,
         from_=TWILIO_NUM,
         )
+    success_status = True
     time.sleep(1)
-    # open the door! for god's sake, open the door!
-    spark.DoorbellCore.relay('R1', 'HIGH')
+    try:
+        # open the door! for god's sake, open the door!
+        spark.DoorbellCore.relay('R1', 'HIGH')
+    except AttributeError as error:
+        print("Error setting the relay to High state!")
+        print error
+        success_status = False
+        
     # wait... wait for it....
     time.sleep(4)
-    # ok now close the door
-    spark.DoorbellCore.relay('R1', 'LOW')
+    try:
+        # ok now close the door
+        spark.DoorbellCore.relay('R1', 'LOW')
+    except AttributeError as error:
+        print("Error setting the relay to Low state to close door!")
+        success_status = False
+        print error
+
+    return success_status
 
 def lambda_handler(event, context):
     twilio_resp = "none"
+    call_status = "none"
 
     # parse the SMS from Twilio
     message = event['body']
@@ -93,12 +109,27 @@ def lambda_handler(event, context):
     if SET_SECURE == 'True':
         if PASSPHRASE not in message: # bad passphrase, do nothing
             print("***PASSPHRASE NOT PRESENT***")
+            errmessage = client.messages.create(
+                body="Someone just tried to get in without the passphrase",
+                to=SUPPORT_NUM,
+                from_=TWILIO_NUM,
+            )
             twilio_resp = "Sorry, you didn't use the passphrase."
             return twilio_resp
 
     #function to talk to the particle core and open the door
-    open_sesame(from_number, name)
+    call_status = open_sesame(from_number, name)
 
-    twilio_resp = "Thanks for visiting!" + "\n\nUse Count: " +str(use_count)
+    if call_status:
+        twilio_resp = "Thanks for visiting!" + "\n\nUse Count: " +str(use_count)
+    else:
+        #let the owner know that the robot appears to be failing
+        errmessage = client.messages.create(
+            body="The doorbell robot just failed!",
+            to=SUPPORT_NUM,
+            from_=TWILIO_NUM,
+        )
+        twilio_resp = "Unfortunately there was an error opening the door! \n\n"
+        twilio_resp = twilio_resp + "Please contact " + str(SUPPORT_NUM)
 
     return twilio_resp
