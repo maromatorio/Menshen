@@ -1,4 +1,3 @@
-
 import boto3   # accessing AWS for DynamoDB session info
 import time    # so we can sleep between Spark calls
 import decimal # for incrementing the use_count
