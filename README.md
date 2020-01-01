@@ -24,8 +24,7 @@ My Lambda uses the [Twilio REST API](https://github.com/twilio/twilio-python/) P
 
 ## TODO
 + Move to [Serverless Application Model](https://github.com/awslabs/serverless-application-model)
-+ Consider some actual security
-+ Additional validation, better error handling
-+ Alternate function to do customized messages?
-+ Look into asking new users for their name (appropriately sanitized)
-+ Figure out proper dependency handling (e.g., staying up to date on Twilio REST API)
++ Consider some actual security (for passphrase option as well as Secrets Manager for creds)
++ Additional validation, better error/exception handling
++ Move to Python 3 (2.x going EOL in Lambda)
++ Incorporate GitHub Actions for an actual build/release process
