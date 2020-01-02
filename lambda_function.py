@@ -1,137 +1,154 @@
-import boto3   # accessing AWS for DynamoDB session info
-import time    # so we can sleep between Spark calls
-import decimal # for incrementing the use count
-import random  # for randomizing responses
+import boto3    # accessing AWS for DynamoDB session info
+import time     # so we can sleep between Spark calls
+import decimal  # for incrementing the use count
+import random   # for randomizing responses
+import requests # to hit the ParticleCloud API
 
 from boto3.session import Session
 from boto3.dynamodb.conditions import Key # so we can save user info in Dynamo
-from twilio.rest import TwilioRestClient  # Twilio client to process SMS
-from spyrk import SparkCloud              # library to access the Spark
+from twilio.rest import Client            # Twilio client to process SMS
+from twilio.base.exceptions import TwilioRestException
 
-# create a DynamoDB session, pull out our secrets
-# todo - testing/error handling for object creation
-dynamodb     = boto3.resource('dynamodb', 'us-east-1')
+# create a DynamoDB session, pull out our 'secrets'
+# todo - testing/error handling
+dynamodb = boto3.resource('dynamodb', 'us-east-1')
 users_table  = dynamodb.Table('robot_users')
-creds_dynamo = users_table.query(
+creds = users_table.query(
     KeyConditionExpression=Key('fromNumber').eq('creds')
-    )
+    )['Items'][0]
+
 # globals
-TWILIO_SID   = creds_dynamo['Items'][0]['account_sid']   # Twilio SID
-TWILIO_TOKEN = creds_dynamo['Items'][0]['auth_token']    # Twilio Token
-TWILIO_NUM   = creds_dynamo['Items'][0]['twil_num']      # Twilio Number
-ACCESS_TOKEN = creds_dynamo['Items'][0]['ACCESS_TOKEN']  # Particle Token
-SUPPORT_NUM  = creds_dynamo['Items'][0]['sup_num']       # Support number
-SET_SECURE   = creds_dynamo['Items'][0]['SetSecure']     # req passphrase?
-PASSPHRASE   = creds_dynamo['Items'][0]['passphrase']    # the magic word
+TWILIO_SID   = creds['account_sid']   # Twilio SID
+TWILIO_TOKEN = creds['auth_token']    # Twilio Token
+TWILIO_NUM   = creds['twil_num']      # Twilio Number
+ACCESS_TOKEN = creds['ACCESS_TOKEN']  # Particle Token
+PARTICLE_URL = creds['PARTICLE_URL']  # Particle API URL
+SUPPORT_NUM  = creds['sup_num']       # Support number
+SET_SECURE   = creds['SetSecure']     # req passphrase?
+PASSPHRASE   = creds['passphrase']    # the magic word
+#DEVICE_NAME  = creds['DEVICE_NAME']   # Particle Core Name
 
-# create Twilio and Spark sessions using the above secrets
-client = TwilioRestClient(TWILIO_SID, TWILIO_TOKEN)
-spark  = SparkCloud(ACCESS_TOKEN)
+# create a Twilio session using the above secrets
+# todo - testing/error handling for session creation
+client = Client(TWILIO_SID, TWILIO_TOKEN)
 
-def number_lookup(from_num):
-    response_dynamo = users_table.query(
-        KeyConditionExpression=Key('fromNumber').eq(from_num)
+def number_lookup(user_num):
+    dynamo_results = users_table.query(
+        KeyConditionExpression=Key('fromNumber').eq(user_num)
         )
+
     # new phone, who dis?
-    if response_dynamo['Count'] == 0:
-        new_entry = {'fromNumber': from_num, 'use_count': 1, 'name': 'stranger'}
+    if dynamo_results['Count'] == 0:
+        new_entry = {'fromNumber': user_num,
+            'use_count': 1,
+            'name': 'Stranger'
+            }
         users_table.put_item(Item=new_entry)
-        name = "A stranger"
+        name = "Stranger"
         use_count = 1
     else:
-        # yes, I manually enter the names
         try:
-            name = response_dynamo['Items'][0]['name']
+            name = dynamo_results['Items'][0]['name']
         except NameError as e:
-            print("Error finding name for " + str(from_num))
+            print("Error finding name for " + str(user_num))
+            #print(e)
 
         # how many times have they used the robot?
         try:
-            use_count = response_dynamo['Items'][0]['use_count']
+            use_count = dynamo_results['Items'][0]['use_count']
         except NameError as e:
-            print("Error finding use_count for " + str(from_num))
+            print("Error finding use_count for " + str(user_num))
 
         # increment the use_count in Dynamo
         use_count += 1
         users_table.update_item(
-            Key={'fromNumber': from_num},
+            Key={'fromNumber': user_num},
             UpdateExpression="set use_count = use_count+ :val",
             ExpressionAttributeValues={':val': decimal.Decimal(1)},
             ReturnValues="UPDATED_NEW"
             )
     return name, use_count
 
-def open_sesame(from_num, name):
-    print("Trying the door now")
-    txt_body = "The door should open for about 5 seconds, " + str(name)
-    message = client.messages.create(
-        body=txt_body,
-        to=from_num,
-        from_=TWILIO_NUM,
-        )
-    success_status = True
-    time.sleep(1)
+def signal_door(payload):
+    print("Hitting Relay API: " + str(payload))
+    data = {
+        'access_token': ACCESS_TOKEN,
+        'params': payload
+        }
+    response = requests.post(PARTICLE_URL, data=data)
+    print("POST Response: " + str(response.status_code))
+    return response.status_code
+
+def send_message(txt, recip):
     try:
-        # open the door! for god's sake, open the door!
-        spark.DoorbellCore.relay('R1', 'HIGH')
-    except AttributeError as error:
-        print("Error setting the relay to High state!")
-        #print error
+        message = client.messages.create(
+            body=txt,
+            to=recip,
+            from_=TWILIO_NUM,
+            )
+    except TwilioRestException as e:
+        print(e)
+    return message
+
+def open_sesame(user_num):
+    print("Trying the door now")
+    success_status = True
+
+    # let the user know the door should be opening imminently
+    m = send_message("The door should open for about 5 seconds", user_num)
+    time.sleep(1)
+
+    # open the door! for god's sake, open the door!
+    r = signal_door('R1,HIGH')
+    if r != 200:
         success_status = False
 
     # wait... wait for it....
     time.sleep(4)
-    try:
-        # ok now close the door
-        spark.DoorbellCore.relay('R1', 'LOW')
-    except AttributeError as error:
-        print("Error setting the relay to Low state to close door!")
+
+    # ok now close the door
+    r = signal_door('R1,LOW')
+    if r != 200:
         success_status = False
-        #print error
 
     return success_status
 
 def lambda_handler(event, context):
-    twilio_resp = "none"
-    call_status = "none"
+    user_resp   = "none"
+    call_status = True
 
     # parse the SMS from Twilio
-    message = event['body']
-    from_num = event['fromNumber']
+    message  = event['body']
+    user_num = event['fromNumber']
 
     # try to look up their info
-    name, use_count = number_lookup(from_num)
+    name, use_count = number_lookup(user_num)
 
     # log it to cloudwatch
-    print("Number  : " + from_num)
+    print("Number  : " + user_num)
     print("Name    : " + name)
     print("Message : " + message)
 
     # if the crappy SET_SECURE bit is on, require a simple passphrase to open
     if SET_SECURE == 'True':
-        if PASSPHRASE not in message: # bad passphrase, do nothing
+        if PASSPHRASE not in message:
             print("***PASSPHRASE NOT PRESENT***")
-            errmessage = client.messages.create(
-                body= str(name) + " tried to get in without the passphrase",
-                to=SUPPORT_NUM,
-                from_=TWILIO_NUM,
-            )
-            twilio_resp = "Sorry, you didn't use the passphrase."
-            return twilio_resp
+            msg = str(name) + " tried to get in without the passphrase\
+                \n\nNumber: " + str(user_num)
+            m = send_message(msg, SUPPORT_NUM)
+            user_resp = "Sorry, you didn't use the passphrase."
+            return user_resp
 
-    #function to talk to the particle core and open the door
-    call_status = open_sesame(from_num, name)
+    #function to talk to the particle device and open the door
+    call_status = open_sesame(user_num)
 
     if call_status:
-        twilio_resp = "Thanks for visiting!" + "\n\nUse Count: " + str(use_count)
+        user_resp = "Thanks for visiting!" + "\n\nUse Count: " + str(use_count)
+        print("Success")
     else:
         #let the owner know that the robot appears to be failing
-        errmessage = client.messages.create(
-            body="The doorbell robot just failed!",
-            to=SUPPORT_NUM,
-            from_=TWILIO_NUM,
-        )
-        twilio_resp = "Unfortunately there was an error opening the door! \n\n"
-        twilio_resp = twilio_resp + "Please contact " + str(SUPPORT_NUM)
+        m = send_message("The doorbell robot just failed!", SUPPORT_NUM)
+        user_resp = "Unfortunately there was an error opening the door! \
+            \n\nPlease contact " + str(SUPPORT_NUM)
 
-    return twilio_resp
+    return user_resp

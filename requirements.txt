@@ -1,4 +1,4 @@
 ####### requirements.txt #######
-spyrk
 boto3
 twilio
+requests
