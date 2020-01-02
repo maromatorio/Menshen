@@ -1,6 +1,6 @@
 import boto3   # accessing AWS for DynamoDB session info
 import time    # so we can sleep between Spark calls
-import decimal # for incrementing the use_count
+import decimal # for incrementing the use count
 import random  # for randomizing responses
 
 from boto3.session import Session
@@ -9,15 +9,17 @@ from twilio.rest import TwilioRestClient  # Twilio client to process SMS
 from spyrk import SparkCloud              # library to access the Spark
 
 # create a DynamoDB session, pull out our secrets
+# todo - testing/error handling for object creation
 dynamodb     = boto3.resource('dynamodb', 'us-east-1')
-table_users  = dynamodb.Table('robot_users')
-creds_dynamo = table_users.query(
+users_table  = dynamodb.Table('robot_users')
+creds_dynamo = users_table.query(
     KeyConditionExpression=Key('fromNumber').eq('creds')
     )
+# globals
 TWILIO_SID   = creds_dynamo['Items'][0]['account_sid']   # Twilio SID
 TWILIO_TOKEN = creds_dynamo['Items'][0]['auth_token']    # Twilio Token
 TWILIO_NUM   = creds_dynamo['Items'][0]['twil_num']      # Twilio Number
-ACCESS_TOKEN = creds_dynamo['Items'][0]['ACCESS_TOKEN']  # Spark Token
+ACCESS_TOKEN = creds_dynamo['Items'][0]['ACCESS_TOKEN']  # Particle Token
 SUPPORT_NUM  = creds_dynamo['Items'][0]['sup_num']       # Support number
 SET_SECURE   = creds_dynamo['Items'][0]['SetSecure']     # req passphrase?
 PASSPHRASE   = creds_dynamo['Items'][0]['passphrase']    # the magic word
@@ -26,32 +28,33 @@ PASSPHRASE   = creds_dynamo['Items'][0]['passphrase']    # the magic word
 client = TwilioRestClient(TWILIO_SID, TWILIO_TOKEN)
 spark  = SparkCloud(ACCESS_TOKEN)
 
-def number_lookup(from_number):
-    response_dynamo = table_users.query(
-        KeyConditionExpression=Key('fromNumber').eq(from_number)
+def number_lookup(from_num):
+    response_dynamo = users_table.query(
+        KeyConditionExpression=Key('fromNumber').eq(from_num)
         )
     # new phone, who dis?
     if response_dynamo['Count'] == 0:
-        table_users.put_item(Item={'fromNumber': from_number, 'use_count': 1, 'name': 'stranger'})
-        name = "stranger"
+        new_entry = {'fromNumber': from_num, 'use_count': 1, 'name': 'stranger'}
+        users_table.put_item(Item=new_entry)
+        name = "A stranger"
         use_count = 1
     else:
         # yes, I manually enter the names
         try:
             name = response_dynamo['Items'][0]['name']
-        except NameError:
-            print("Error finding name for " + str(from_number))
+        except NameError as e:
+            print("Error finding name for " + str(from_num))
 
         # how many times have they used the robot?
         try:
             use_count = response_dynamo['Items'][0]['use_count']
-        except NameError:
-            print("Error finding use_count for " + str(from_number))
+        except NameError as e:
+            print("Error finding use_count for " + str(from_num))
 
         # increment the use_count in Dynamo
         use_count += 1
-        table_users.update_item(
-            Key={'fromNumber': from_number},
+        users_table.update_item(
+            Key={'fromNumber': from_num},
             UpdateExpression="set use_count = use_count+ :val",
             ExpressionAttributeValues={':val': decimal.Decimal(1)},
             ReturnValues="UPDATED_NEW"
@@ -73,9 +76,9 @@ def open_sesame(from_num, name):
         spark.DoorbellCore.relay('R1', 'HIGH')
     except AttributeError as error:
         print("Error setting the relay to High state!")
-        print error
+        #print error
         success_status = False
-        
+
     # wait... wait for it....
     time.sleep(4)
     try:
@@ -84,7 +87,7 @@ def open_sesame(from_num, name):
     except AttributeError as error:
         print("Error setting the relay to Low state to close door!")
         success_status = False
-        print error
+        #print error
 
     return success_status
 
@@ -94,13 +97,13 @@ def lambda_handler(event, context):
 
     # parse the SMS from Twilio
     message = event['body']
-    from_number = event['fromNumber']
+    from_num = event['fromNumber']
 
     # try to look up their info
-    name, use_count = number_lookup(from_number)
+    name, use_count = number_lookup(from_num)
 
     # log it to cloudwatch
-    print("Number  : " + from_number)
+    print("Number  : " + from_num)
     print("Name    : " + name)
     print("Message : " + message)
 
@@ -109,7 +112,7 @@ def lambda_handler(event, context):
         if PASSPHRASE not in message: # bad passphrase, do nothing
             print("***PASSPHRASE NOT PRESENT***")
             errmessage = client.messages.create(
-                body="Someone just tried to get in without the passphrase",
+                body= str(name) + " tried to get in without the passphrase",
                 to=SUPPORT_NUM,
                 from_=TWILIO_NUM,
             )
@@ -117,10 +120,10 @@ def lambda_handler(event, context):
             return twilio_resp
 
     #function to talk to the particle core and open the door
-    call_status = open_sesame(from_number, name)
+    call_status = open_sesame(from_num, name)
 
     if call_status:
-        twilio_resp = "Thanks for visiting!" + "\n\nUse Count: " +str(use_count)
+        twilio_resp = "Thanks for visiting!" + "\n\nUse Count: " + str(use_count)
     else:
         #let the owner know that the robot appears to be failing
         errmessage = client.messages.create(

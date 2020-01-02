@@ -1,0 +1,7 @@
+####### requirements.txt #######
+spyrk
+boto3
+time
+decimal
+random
+twilio
