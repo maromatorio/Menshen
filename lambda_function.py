@@ -24,12 +24,14 @@ SET_SECURE   = os.environ['SET_SECURE']   # Req passphrase?
 PASSPHRASE   = os.environ['PASSPHRASE']   # The magic word
 DYNAMO_ID    = os.environ['DYNAMO_ID']    # DynamoDB Table Name
 BANNED_NUMS  = json.loads(os.environ.get("BANNED_NUMS", "[]"))
+print("eSID: " + e2)
 
 # using encryption helper for secret values
 kms = boto3.client('kms')
 ACCESS_TOKEN = kms.decrypt(CiphertextBlob=b64decode(e1))['Plaintext'].decode('utf-8')
 TWILIO_SID   = kms.decrypt(CiphertextBlob=b64decode(e2))['Plaintext'].decode('utf-8')
 TWILIO_TOKEN = kms.decrypt(CiphertextBlob=b64decode(e3))['Plaintext'].decode('utf-8')
+print("SID" + TWILIO_SID)
 
 # create a DynamoDB session, load the user table
 dynamodb     = boto3.resource('dynamodb', 'us-east-1')
