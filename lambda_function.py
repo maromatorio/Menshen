@@ -31,7 +31,7 @@ kms = boto3.client('kms')
 ACCESS_TOKEN = kms.decrypt(CiphertextBlob=b64decode(e1))['Plaintext'].decode('utf-8')
 TWILIO_SID   = kms.decrypt(CiphertextBlob=b64decode(e2))['Plaintext'].decode('utf-8')
 TWILIO_TOKEN = kms.decrypt(CiphertextBlob=b64decode(e3))['Plaintext'].decode('utf-8')
-print("SID" + TWILIO_SID)
+print("SID: " + TWILIO_SID)
 
 # create a DynamoDB session, load the user table
 dynamodb     = boto3.resource('dynamodb', 'us-east-1')
@@ -67,6 +67,13 @@ def number_lookup(user_num):
         except NameError as e:
             print("Error finding use_count for " + str(user_num))
 
+        # if you want to get cute, store custom responses as a list of strings
+        try:
+            responses = dynamo_results['Items'][0]['responses']
+        except KeyError as e:
+            responses = ["Thanks for visiting!"]
+            print("No custom responses for " + str(user_num))
+
         # increment the use_count in Dynamo
         use_count += 1
         users_table.update_item(
@@ -75,25 +82,22 @@ def number_lookup(user_num):
             ExpressionAttributeValues={':val': decimal.Decimal(1)},
             ReturnValues="UPDATED_NEW"
             )
-    return name, use_count
+    return name, use_count, responses
 
 def signal_door(payload):
     print("Hitting Relay API: " + str(payload))
-    d = {
-        'access_token': ACCESS_TOKEN,
-        'params': payload
-        }
+    d = {'access_token': ACCESS_TOKEN, 'params': payload}
     data = parse.urlencode(d).encode()
     req  = request.Request(PARTICLE_URL, data=data)
+
     resp = request.urlopen(req)
     print("POST Response: " + str(resp.getcode()))
     return resp.getcode()
 
 def send_message(txt, recip):
     populated_url = TWILIO_URL.format(TWILIO_SID)
-    post_params = {"To": recip, "From": TWILIO_NUM, "Body": txt}
-
-    data = parse.urlencode(post_params).encode()
+    d = {"To": recip, "From": TWILIO_NUM, "Body": txt}
+    data = parse.urlencode(d).encode()
     req = request.Request(populated_url)
 
     authentication = "{}:{}".format(TWILIO_SID, TWILIO_TOKEN)
@@ -109,7 +113,7 @@ def open_sesame(user_num, testing):
 
     # let the user know the door should be opening imminently
     if not testing:
-        msg = "Message received, the door should oepn for about 5 seconds"
+        msg = "Message received, the door should open for about 5 seconds"
         send_message(msg, user_num)
         time.sleep(1)
 
@@ -145,7 +149,7 @@ def lambda_handler(event, context):
 
     # try to look up their info
     print("*Commencing lookup function*")
-    name, use_count = number_lookup(user_num)
+    name, use_count, responses = number_lookup(user_num)
     if name == "AWS_Test":
         testing = True
 
@@ -173,11 +177,11 @@ def lambda_handler(event, context):
             user_resp = "Sorry, you didn't use the passphrase."
             return user_resp
 
-    #function to talk to the particle device and open the door
+    #function to talk to the particle device and open/close the door
     call_status = open_sesame(user_num, testing)
 
     if call_status:
-        user_resp = "Thanks for visiting!" + "\n\nUse Count: " + str(use_count)
+        user_resp = random.choice(responses)+"\n\nUse Count: " + str(use_count)
         print("*Success*")
     else:
         #let the owner know that the robot appears to be failing
