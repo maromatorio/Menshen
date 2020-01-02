@@ -29,8 +29,9 @@ jobs:
         pip install pytest
         pytest
           - uses: actions/checkout@master
+    - name: Build Archive
+      run: zip doorapp.zip -r * .[^.]* 
     - name: Deploy Lambda
-      run: zip doorapp.zip -r * .[^.]*
       uses: appleboy/lambda-action@master
       with:
         aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
