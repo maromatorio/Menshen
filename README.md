@@ -10,7 +10,7 @@ This app was originally based on [this project](https://github.com/awslabs/lambd
 Previously, I used [spyrk](https://github.com/Alidron/spyrk) and the [Twilio REST API](https://github.com/twilio/twilio-python/) Python library to communicate with the ParticleCloud API and Twilio API respectively. However, managing dependencies was getting more difficult and with Python 2.x going EOL shortly, I decided to drop all external dependencies and use only what came in the base Lambda setup, so all my API communications are just form-encoded calls using urllib.
 
 ### ParticleCloud
-ParticleCloud tells my Core/Photon when to close/open the relay. I have the two wires that connect to the "Door" button on my intercom also running into one of the simple mechanical relays - when the relay is closed, it's the same effect as pushing the button (the building's front door gets buzzed open).
+[ParticleCloud](https://docs.particle.io/reference/device-cloud/api/) tells my Core/Photon when to close/open the relay. I have the two wires that connect to the "Door" button on my intercom also running into one of the simple mechanical relays - when the relay is closed, it's the same effect as pushing the button (the building's front door gets buzzed open).
 
 ### Twilio
 Twilio allows the Lambda to receive (and send) SMS messages to the user (and me in the event of failures or unauthorized use).
