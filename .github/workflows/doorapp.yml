@@ -30,7 +30,7 @@ jobs:
     #    pytest
     #      - uses: actions/checkout@master
     - name: Build Archive
-      run: zip ../doorapp.zip -r * .[^.]*
+      run: zip doorapp.zip -r * .[^.]*
     - name: Deploy Lambda
       uses: appleboy/lambda-action@master
       with:
@@ -38,4 +38,4 @@ jobs:
         aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws_region: ${{ secrets.AWS_REGION }}
         function_name: doorFunction
-        zip_file: ../doorapp.zip
+        zip_file: doorapp.zip
