@@ -88,16 +88,9 @@ def signal_door(payload):
     return resp.getcode()
 
 def send_message(txt, recip):
-    print("URL:")
-    print(TWILIO_URL)
     populated_url = TWILIO_URL.format(TWILIO_SID)
-    print("Populated URL:")
-    print(populated_url)
     post_params = {"To": recip, "From": TWILIO_NUM, "Body": txt}
-    print("Params:")
-    print(post_params)
-    print("Token:")
-    print(TWILIO_TOKEN)
+
     data = parse.urlencode(post_params).encode()
     req = request.Request(populated_url)
 
