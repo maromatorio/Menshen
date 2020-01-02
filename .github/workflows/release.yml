@@ -1,25 +1,25 @@
-name: Door Function - Create Release
+#name: Door Function - Create Release
 
-on:
-  push:
-    tags:
-      - 'v*' # Push events matching v* (i.e., v1.0, v20.15.10, etc.)
+#on:
+#  push:
+#    tags:
+#      - 'v*' # Push events matching v* (i.e., v1.0, v20.15.10, etc.)
 
-jobs:
-  build:
-    name: Create Release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@master
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: New Release
-          draft: false
-          prerelease: false
+#jobs:
+#  build:
+#    name: Create Release
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Checkout Code
+#        uses: actions/checkout@master
+#      - name: Create Release
+#        id: create_release
+#        uses: actions/create-release@v1
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        with:
+#          tag_name: ${{ github.ref }}
+#          release_name: Release ${{ github.ref }}
+#          body: New Release
+#          draft: false
+#          prerelease: false
