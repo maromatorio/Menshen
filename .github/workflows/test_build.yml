@@ -1,8 +1,6 @@
 name: Door Function - Build
 
 on: [push]
-  paths:
-    - 'lambda_function.py'
 
 jobs:
   build:
@@ -26,7 +24,7 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Build Archive
-      run: zip doorapp.zip -r * .[^.]* -x '*.git*' -x 'lambda_test.py' --exclude=*.dist-info*
+      run: zip doorapp.zip -r * .[^.]* -x '*.git*' --exclude=*.dist-info*
     #- name: Upload Binary to S3
     #  uses: tpaschalis/s3-sync-action@master
     #  env:
