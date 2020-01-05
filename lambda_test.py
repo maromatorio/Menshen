@@ -2,7 +2,7 @@
 import os       # to grab environment variables from Lambda
 import base64   # encoding
 import boto3    # accessing AWS
-import urllib   # http
+import urllib   # http actions
 
 from base64 import b64decode      # decode encrypted environment variables
 from urllib import request, parse # to make API calls the old-fashioned way
@@ -43,10 +43,9 @@ def lambda_handler(event, context):
         print("***TEST SUCCESS***")
         return {'statusCode': 200, 'body': 'TEST SUCCESS'}
     else:
-        #TODO - SNS or other notification of failure
+        # this will trigger a CloudWatch Metric Alarm and ping me via SNS
         print("***TEST FAILURE***")
         return {'statusCode': 400, 'body': 'TEST FAILURE'}
-
 
 def _test_twilio_api(txt, recip):
     print("*Testing Twilio API*")
@@ -69,7 +68,6 @@ def _test_twilio_api(txt, recip):
         print('POST RESPONSE: ' + str(e.code))
         print('Twilio returned: ', e.read())
         return e.code
-
 
 def _test_particle_api():
     print('*Testing Particle API*')
