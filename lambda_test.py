@@ -20,7 +20,7 @@ def lambda_handler(event, context):
     # if this stays true, we passed all tests
     test_result = True
 
-    print("***COMMENCTING DAILY API TEST***\n")
+    print("***COMMENCING API TEST***\n")
 
     # test the Twilio API - sending SMS - using test (free) creds
     msg = "This is an API test!"
@@ -40,11 +40,11 @@ def lambda_handler(event, context):
         test_result = False
 
     if test_result:
-        print("***TEST SUCCESS***")
+        print("***TEST SUCCESS***\n")
         return {'statusCode': 200, 'body': 'TEST SUCCESS'}
     else:
         # this will trigger a CloudWatch Metric Alarm and ping me via SNS
-        print("***TEST FAILURE***")
+        print("***TEST FAILURE***\n")
         return {'statusCode': 400, 'body': 'TEST FAILURE'}
 
 def _test_twilio_api(txt, recip):
