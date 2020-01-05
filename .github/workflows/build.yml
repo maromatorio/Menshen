@@ -1,8 +1,9 @@
 name: Door Function - Build
 
-on: [push]
-  paths:
-  - 'lambda_function.py'
+on:
+  push:
+    paths:
+      - 'lambda_function.py'
 
 jobs:
   build:

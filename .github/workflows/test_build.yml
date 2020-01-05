@@ -1,8 +1,9 @@
 name: Test Function - Build
 
-on: [push]
-  paths:
-  - 'lambda_test.py'
+on:
+  push:
+    paths:
+      - 'lambda_test.py'
 
 jobs:
   build:
