@@ -18,8 +18,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt -t ./
           chmod -R 755 .
-      - name: Build Archive
-        run: zip doorapp.zip -r * .[^.]* -x '*.git*' --exclude=*.dist-info*
+      - name: Build Prod Archive
+        run: zip doorapp.zip -r * .[^.]* -x '*.git*' -x 'lambda_test.py' --exclude=*.dist-info*
       - name: Deploy Lambda
         uses: appleboy/lambda-action@master
         with:
@@ -28,3 +28,13 @@ jobs:
           aws_region: ${{ secrets.AWS_REGION }}
           function_name: doorFunction
           zip_file: doorapp.zip
+      - name: Build Test Archive
+        run: zip testapp.zip -r * .[^.]* -x '*.git*' -x 'lambda_function.py' --exclude=*.dist-info*
+      - name: Deploy Test Lambda
+        uses: appleboy/lambda-action@master
+        with:
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws_region: ${{ secrets.AWS_REGION }}
+          function_name: test-doorFunction
+          zip_file: testapp.zip
