@@ -4,6 +4,7 @@ import random   # for randomizing responses
 import os       # to grab environment variables from Lambda
 import base64   # encoding
 import json     # banned numbers
+import urllib   # http stuff
 
 from base64 import b64decode      # decode encrypted environment variables
 from urllib import request, parse # to make API calls the old-fashioned way
@@ -94,6 +95,15 @@ def signal_door(payload):
     print("POST Response: " + str(resp.getcode()))
     return resp.getcode()
 
+    try:
+        resp = request.urlopen(req)
+        print("POST Response: " + str(resp.getcode()))
+        return resp.getcode()
+    except urllib.error.HTTPError as e:
+        print('POST RESPONSE: ' + str(e.code))
+        print('Particle returned: ', e.read())
+        return e.code
+
 def send_message(txt, recip):
     populated_url = TWILIO_URL.format(TWILIO_SID)
     d = {"To": recip, "From": TWILIO_NUM, "Body": txt}
@@ -104,8 +114,14 @@ def send_message(txt, recip):
     base64string = base64.b64encode(authentication.encode("utf-8"))
     req.add_header("Authorization", "Basic %s" % base64string.decode("ascii"))
 
-    with request.urlopen(req, data) as f:
-        print("Twilio returned {}".format(str(f.read().decode("utf-8"))))
+    try:
+        with request.urlopen(req, data) as f:
+            print("Twilio returned {}".format(str(f.read().decode("utf-8"))))
+            return f.getcode()
+    except urllib.error.HTTPError as e:
+        print('POST RESPONSE: ' + str(e.code))
+        print('Twilio returned: ', e.read())
+        return e.code
 
 def open_sesame(user_num, testing):
     print("Trying the door now")
@@ -114,7 +130,7 @@ def open_sesame(user_num, testing):
     # let the user know the door should be opening imminently
     if not testing:
         msg = "Message received, the door should open for about 5 seconds"
-        send_message(msg, user_num)
+        code = send_message(msg, user_num)
         time.sleep(1)
 
     # open the door! for god's sake, open the door!
@@ -163,7 +179,7 @@ def lambda_handler(event, context):
         print("***BANNED USER ATTEMPT***")
         msg = "Banned user " + str(name) + " tried to get in!\
             \n\nNumber: " + str(user_num)
-        send_message(msg, SUPPORT_NUM)
+        code = send_message(msg, SUPPORT_NUM)
         user_resp = "Sorry, you aren't allowed in."
         return user_resp
 
@@ -173,7 +189,7 @@ def lambda_handler(event, context):
             print("***PASSPHRASE NOT PRESENT***")
             msg = str(name) + " tried to get in without the passphrase\
                 \n\nNumber: " + str(user_num)
-            send_message(msg, SUPPORT_NUM)
+            code = send_message(msg, SUPPORT_NUM)
             user_resp = "Sorry, you didn't use the passphrase."
             return user_resp
 
@@ -185,7 +201,7 @@ def lambda_handler(event, context):
         print("*Success*")
     else:
         #let the owner know that the robot appears to be failing
-        send_message("The doorbell robot just failed!", SUPPORT_NUM)
+        code = send_message("The doorbell robot just failed!", SUPPORT_NUM)
         user_resp = "Unfortunately there was an error opening the door! \
             \n\nPlease contact " + str(SUPPORT_NUM)
         print("*Failure*")
