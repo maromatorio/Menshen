@@ -1,6 +1,8 @@
-name: Door Function - Build
+name: Test Function - Build
 
 on: [push]
+  paths:
+  - 'lambda_test.py'
 
 jobs:
   build:
@@ -24,7 +26,7 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Build Archive
-      run: zip doorapp.zip -r * .[^.]* -x '*.git*' --exclude=*.dist-info*
+      run: zip testapp.zip -r * .[^.]* -x '*.git*' -x 'lambda_function.py' --exclude=*.dist-info*
     #- name: Upload Binary to S3
     #  uses: tpaschalis/s3-sync-action@master
     #  env:
@@ -33,11 +35,11 @@ jobs:
     #    AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
     #    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
     #    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-    - name: Deploy Lambda
+    - name: Deploy Test Lambda
       uses: appleboy/lambda-action@master
       with:
         aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws_region: ${{ secrets.AWS_REGION }}
-        function_name: doorFunction
-        zip_file: doorapp.zip
+        function_name: test-doorFunction
+        zip_file: testapp.zip
