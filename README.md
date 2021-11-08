@@ -1,6 +1,6 @@
 # Menshen  
 
-This app is designed to solve a personal annoyance - I live in an old New York brownstone with a [typical 4-wire intercom](https://www.intercom-parts.com/apartment-stations/) and a common front door. I have a limited number of keys, so if I'm not in the apartment to buzz a guest/cleaning/delivery person inside, the only option is to give them my key. Because everyone seems to want weird names for projects like this, I called it [Menshen](https://en.wikipedia.org/wiki/Menshen), or door gods, which are divine guardians of doors and gates in Chinese folk religions, used to protect against evil influences or to encourage the entrance of positive ones.
+This app is designed to solve a personal annoyance - I live in an old New York apartment with a [typical 4-wire intercom](https://www.intercom-parts.com/apartment-stations/) and a shared front door at the street. I have a limited number of keys, so if I'm not in the apartment to buzz a guest/cleaning/delivery person inside, the only option is to give them my key.
 
 This app solves my problem by allowing a user to send a message via SMS (passcodes optional) to a [Twilio](https://www.twilio.com/) number, which in turn sends a request to an Amazon API Gateway endpoint that triggers a Lambda function. The Lambda function communicates via REST API with a [Particle Core](https://www.particle.io/) in my apartment, which uses an [attached relay](https://docs.particle.io/datasheets/particle-shields/#relay-shield) that's wired to my intercom to buzz my building's front door open.
 
@@ -28,10 +28,10 @@ Twilio allows the Lambda to send/receive SMS messages to the user (and me in the
 [DynamoDB](https://aws.amazon.com/dynamodb/) is Amazon's non-relational database service. This app leverages DynamoDB to store user data (and previously, environment variables).
 
 ## Test
-I created a second Lambda function, lambda_test.py, to periodically test the APIs that I use and make sure they're still working. This is currently configured to run every 15 minutes and triggers a CloudWatch alarm if it fails, which in turn notifies me via SNS.
+I created a second Lambda function, lambda_test.py, to periodically test the APIs that I use and make sure they're still working. This is currently configured to run every 15 minutes and triggers a CloudWatch alarm if it fails, which in turn notifies me via SNS. Note that currently these tests fail more often than expected, despite the system typically still functioning during periods when the test throws errors.
 
 ## Build
-I am currently using some GitHub Actions as a poor man's CI/CD to build and push my Lambda functions. Any time I push to master, a runner is invoked that tests the build, and if it passes pushes the new package to AWS. See .github/workflows for this code.
+I am currently using some GitHub Actions as a cobbled-together CI/CD to build, test, and deploy code to my Lambda functions; see .github/workflows for this code.
 
 ## TODO
 + Maybe move to [Serverless Application Model](https://github.com/awslabs/serverless-application-model)
