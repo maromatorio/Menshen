@@ -2,7 +2,7 @@
 
 This app is designed to solve a personal annoyance - I live in an old New York apartment with a [typical 4-wire intercom](https://www.intercom-parts.com/apartment-stations/) and a shared front door at the street. I have a limited number of keys, so if I'm not in the apartment to buzz a guest/cleaning/delivery person inside, the only option is to give them my key.
 
-This app solves my problem by allowing a user to send a message via SMS (passcodes optional) to a [Twilio](https://www.twilio.com/) number, which in turn sends a request to an Amazon API Gateway endpoint that triggers a Lambda function. The Lambda function communicates via REST API with a [Particle Core](https://www.particle.io/) in my apartment, which uses an [attached relay](https://docs.particle.io/datasheets/particle-shields/#relay-shield) that's wired to my intercom to buzz my building's front door open.
+This app solves my problem by allowing a user to send a message via SMS (passcodes optional) to a [Twilio](https://www.twilio.com/) number, which in turn sends a request to an Amazon API Gateway endpoint that triggers a Lambda function. The Lambda function communicates via REST API with a [Particle Core](https://www.particle.io/) in my apartment, which uses an ~~[attached relay](https://docs.particle.io/datasheets/particle-shields/#relay-shield)~~ that's wired to my intercom to buzz my building's front door open. As of 2021, the Core and original Relay Shield are no longer available; new hardware would be the [Photon](https://store.particle.io/products/photon?_pos=1&_sid=d0ce7703e&_ss=r) and [this 3rd Party Relay board](https://www.tindie.com/products/brlabelectronics/particle-photon-relay-shield-2-channel/).
 
 This app was originally based on [this project](https://github.com/awslabs/lambda-apigateway-twilio-tutorial).  
 
@@ -10,7 +10,7 @@ This app was originally based on [this project](https://github.com/awslabs/lambd
 This is not a high security system. It only buzzes open my building's front door, not any individual apartments. Even using the Set-Secure option here is likely not very secure. Use at your own peril.
 
 ## Dependencies
-Previously, I used [spyrk](https://github.com/Alidron/spyrk) and the [Twilio REST API](https://github.com/twilio/twilio-python/) Python library to communicate with the ParticleCloud API and Twilio API respectively. However, managing dependencies was getting more difficult and with Python 2.x going EOL shortly, I decided to drop all external dependencies and use only what came in the base Lambda setup, so all my API communications are just form-encoded calls using urllib.
+Previously, I used [spyrk](https://github.com/Alidron/spyrk) and the [Twilio REST API](https://github.com/twilio/twilio-python/) Python library to communicate with the ParticleCloud API and Twilio API respectively. However, managing packages was a pain and with Python 2.x going EOL, I decided to drop external dependencies and use only what came in the base Lambda setup. Now, my API communications are just form-encoded calls using urllib.
 
 ### ParticleCloud
 [ParticleCloud](https://docs.particle.io/reference/device-cloud/api/) tells my Core/Photon when to close/open the relay. I have the two wires that connect to the "Door" button on my intercom also running into one of the simple mechanical relays - when the relay is closed, it's the same effect as pushing the button (the building's front door gets buzzed open).
