@@ -15,30 +15,47 @@ from boto3.dynamodb.conditions import Key # so we can save user info in Dynamo
 
 # globals - these should all be saved as environment variables in Lambda
 PARTICLE_URL = os.environ['PARTICLE_URL'] # ParticleCloud API URL
-e1           = os.environ['ACCESS_TOKEN'] # ParticleCloud API Token
-e2           = os.environ['TWILIO_SID']   # Twilio SID
-e3           = os.environ['TWILIO_TOKEN'] # Twilio Token
+e1           = os.environ['ACCESS_TOKEN'] # ParticleCloud API Token (Encrypted)
+e2           = os.environ['TWILIO_SID']   # Twilio SID (Encrypted)
+e3           = os.environ['TWILIO_TOKEN'] # Twilio Token (Encrypted)
 TWILIO_URL   = os.environ['TWILIO_URL']   # Twilio API URL
 TWILIO_NUM   = os.environ['TWILIO_NUM']   # Twilio Number
-SUPPORT_NUM  = os.environ['SUPPORT_NUM']  # Support/Owner Number
+SUPPORT_NUM  = os.environ['SUPPORT_NUM']  # Support/Owner Phone Number
 SET_SECURE   = os.environ['SET_SECURE']   # Req passphrase?
 PASSPHRASE   = os.environ['PASSPHRASE']   # The magic word
 DYNAMO_ID    = os.environ['DYNAMO_ID']    # DynamoDB Table Name
+REGION       = 'us-east-1'                # hardcoding region (for now)
 BANNED_NUMS  = json.loads(os.environ.get("BANNED_NUMS", "[]"))
-print("eSID: " + e2)
 
-# using encryption helper for secret values
+# use kms encryption helper for secret values
 kms = boto3.client('kms')
 ACCESS_TOKEN = kms.decrypt(CiphertextBlob=b64decode(e1))['Plaintext'].decode('utf-8')
 TWILIO_SID   = kms.decrypt(CiphertextBlob=b64decode(e2))['Plaintext'].decode('utf-8')
 TWILIO_TOKEN = kms.decrypt(CiphertextBlob=b64decode(e3))['Plaintext'].decode('utf-8')
-print("SID: " + TWILIO_SID)
 
-# create a DynamoDB session, load the user table
-dynamodb     = boto3.resource('dynamodb', 'us-east-1')
+# create a DynamoDB session and load the user table
+dynamodb     = boto3.resource('dynamodb', REGION)
 users_table  = dynamodb.Table(DYNAMO_ID)
 
 def number_lookup(user_num):
+    """Takes the calling phone number and attempts a lookup in DynamoDB
+    
+    Parameters
+    ----------
+    user_num : str
+        The sending phone number, extracted from the Twilio call
+    
+    Returns
+    -------
+    name : str
+        the user's name, if known (default is "Stranger")
+    use_count : int
+        how many times this number has used the service
+    responses : list
+        potential replies as a list of strings (default "Thanks for visiting!")
+    """
+
+    # if it's from the test number, do not pass go
     if user_num == "+15555555555":
         return "AWS_Test", 1
 
@@ -86,6 +103,14 @@ def number_lookup(user_num):
     return name, use_count, responses
 
 def signal_door(payload):
+    """Constructs an API call to the Particle device attached to the intercom
+    
+    Parameters
+    ----------
+    payload : str
+        The API parameters, formatted as "pin,state" (e.g., "r1,HIGH" to open)
+    """
+
     print("Hitting Relay API: " + str(payload))
     d = {'access_token': ACCESS_TOKEN, 'params': payload}
     data = parse.urlencode(d).encode()
@@ -105,6 +130,15 @@ def signal_door(payload):
         return e.code
 
 def send_message(txt, recip):
+    """Sends an SMS message via Twilio API call
+    
+    Parameters
+    ----------
+    txt : str
+        The text to be sent via SMS
+    recip : str
+        The phone number receiving our message
+    """
     populated_url = TWILIO_URL.format(TWILIO_SID)
     d = {"To": recip, "From": TWILIO_NUM, "Body": txt}
     data = parse.urlencode(d).encode()
@@ -141,7 +175,7 @@ def open_sesame(user_num, testing):
     # wait... wait for it....
     time.sleep(4)
 
-    # ok now close the door
+    # now close the door
     r = signal_door('R1,LOW')
     if r != 200:
         success_status = False
@@ -149,6 +183,18 @@ def open_sesame(user_num, testing):
     return success_status
 
 def lambda_handler(event, context):
+    """Main function for our Lambda - parses the received message
+    
+    Parameters
+    ----------
+    event : dict
+        The TwiML (XML) values of the incoming SMS from Twilio
+
+    Returns
+    -------
+    user_resp : str
+        The body of the SMS sent in response, at the conclusion of processing
+    """
     user_resp   = ""
     call_status = True
     testing     = False
@@ -157,30 +203,32 @@ def lambda_handler(event, context):
     try:
         message  = event['body']
         user_num = event['fromNumber']
+        #to_num   = event['toNumber']
     except KeyError as e:
         print("Didn't receive expected values from Twilio! Bombing out.")
         print(e)
         send_message("The doorbell robot just failed!", SUPPORT_NUM)
         return("Something went wrong")
 
-    # try to look up their info
+    # try to look up their info; if it's the test number set that bit to true
     print("*Commencing lookup function*")
+    print(event)
     name, use_count, responses = number_lookup(user_num)
     if name == "AWS_Test":
         testing = True
 
-    # log it to cloudwatch
+    # log the details to cloudwatch
     print("Number  : " + user_num)
     print("Name    : " + name)
     print("Message : " + message)
 
-    # bad user, no cookie
+    # we all need to be able to set boundaries
     if user_num in BANNED_NUMS:
         print("***BANNED USER ATTEMPT***")
         msg = "Banned user " + str(name) + " tried to get in!\
             \n\nNumber: " + str(user_num)
         code = send_message(msg, SUPPORT_NUM)
-        user_resp = "Sorry, you aren't allowed in."
+        user_resp = "Sorry, you aren't allowed in. This has been reported."
         return user_resp
 
     # if the SET_SECURE bit is on, require a passphrase in SMS body to open
@@ -193,14 +241,15 @@ def lambda_handler(event, context):
             user_resp = "Sorry, you didn't use the passphrase."
             return user_resp
 
-    #function to talk to the particle device and open/close the door
+    # if you've made it this far, let's get that door buzzing
     call_status = open_sesame(user_num, testing)
 
     if call_status:
+        # everything appears to have worked, send a random success response
         user_resp = random.choice(responses)+"\n\nUse Count: " + str(use_count)
         print("*Success*")
     else:
-        #let the owner know that the robot appears to be failing
+        # let the owner know that the robot appears to be failing
         code = send_message("The doorbell robot just failed!", SUPPORT_NUM)
         user_resp = "Unfortunately there was an error opening the door! \
             \n\nPlease contact " + str(SUPPORT_NUM)
