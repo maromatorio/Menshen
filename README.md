@@ -31,8 +31,9 @@ Twilio allows the Lambda to send/receive SMS messages to the user (and me in the
 I created a second Lambda function, lambda_test.py, to periodically test the APIs that I use and make sure they're still working. This is currently configured to run every 15 minutes and triggers a CloudWatch alarm if it fails, which in turn notifies me via SNS. Note that currently these tests fail more often than expected, despite the system typically still functioning during periods when the test throws errors.
 
 ## Build
-I am currently using some GitHub Actions as a cobbled-together CI/CD to build, test, and deploy code to my Lambda functions; see .github/workflows for this code.
+I am currently using some [GitHub Actions](https://github.com/actions/setup-python) as a cobbled-together CI/CD to build, test, and deploy code to my Lambda functions; see .github/workflows for this code.
 
 ## TODO
 + Maybe move to [Serverless Application Model](https://github.com/awslabs/serverless-application-model)
 + More detailed documentation on wiring, setup, and initial configs
++ Add support for multiple phone numbers/relay devices

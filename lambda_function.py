@@ -27,7 +27,7 @@ DYNAMO_ID    = os.environ['DYNAMO_ID']    # DynamoDB Table Name
 REGION       = 'us-east-1'                # hardcoding region (for now)
 BANNED_NUMS  = json.loads(os.environ.get("BANNED_NUMS", "[]"))
 
-# use kms encryption helper for secret values
+# use kms to decrypt secret values
 kms = boto3.client('kms')
 ACCESS_TOKEN = kms.decrypt(CiphertextBlob=b64decode(e1))['Plaintext'].decode('utf-8')
 TWILIO_SID   = kms.decrypt(CiphertextBlob=b64decode(e2))['Plaintext'].decode('utf-8')
@@ -54,9 +54,8 @@ def number_lookup(user_num):
     responses : list
         potential replies as a list of strings (default "Thanks for visiting!")
     """
-
-    # if it's from the test number, do not pass go
     if user_num == "+15555555555":
+        # if it's from the test number, do not pass go
         return "AWS_Test", 1
 
     dynamo_results = users_table.query(
@@ -90,7 +89,6 @@ def number_lookup(user_num):
             responses = dynamo_results['Items'][0]['responses']
         except KeyError as e:
             responses = ["Thanks for visiting!"]
-            print("No custom responses for " + str(user_num))
 
         # increment the use_count in Dynamo
         use_count += 1
@@ -110,7 +108,6 @@ def signal_door(payload):
     payload : str
         The API parameters, formatted as "pin,state" (e.g., "r1,HIGH" to open)
     """
-
     print("Hitting Relay API: " + str(payload))
     d = {'access_token': ACCESS_TOKEN, 'params': payload}
     data = parse.urlencode(d).encode()
@@ -158,6 +155,15 @@ def send_message(txt, recip):
         return e.code
 
 def open_sesame(user_num, testing):
+    """Runs the cycle to open the door
+    
+    Parameters
+    ----------
+    user_num : str
+        The phone number of the user, to receive confirmation
+    testing : boolean
+        This bit, when true, indicates this call is a test of the system
+    """
     print("Trying the door now")
     success_status = True
 
@@ -195,30 +201,30 @@ def lambda_handler(event, context):
     user_resp : str
         The body of the SMS sent in response, at the conclusion of processing
     """
-    user_resp   = ""
-    call_status = True
-    testing     = False
+    user_resp    = ""
+    call_status  = True
+    testing      = False
 
     # parse the incoming SMS from Twilio
     try:
         message  = event['body']
         user_num = event['fromNumber']
-        #to_num   = event['toNumber']
+        rec_num  = event['toNumber']
     except KeyError as e:
         print("Didn't receive expected values from Twilio! Bombing out.")
         print(e)
         send_message("The doorbell robot just failed!", SUPPORT_NUM)
-        return("Something went wrong")
+        return("Apologies, something went wrong. Technology is hard!")
 
-    # try to look up their info; if it's the test number set that bit to true
+    # try to look up their info; if it's the test number set the bit to true
     print("*Commencing lookup function*")
-    print(event)
     name, use_count, responses = number_lookup(user_num)
     if name == "AWS_Test":
         testing = True
 
     # log the details to cloudwatch
     print("Number  : " + user_num)
+    print("Receive : " + rec_num)
     print("Name    : " + name)
     print("Message : " + message)
 
@@ -234,7 +240,7 @@ def lambda_handler(event, context):
     # if the SET_SECURE bit is on, require a passphrase in SMS body to open
     if SET_SECURE == 'True':
         if PASSPHRASE not in message:
-            print("***PASSPHRASE NOT PRESENT***")
+            print("***REQUIRED PASSPHRASE NOT PRESENT***")
             msg = str(name) + " tried to get in without the passphrase\
                 \n\nNumber: " + str(user_num)
             code = send_message(msg, SUPPORT_NUM)
@@ -245,7 +251,7 @@ def lambda_handler(event, context):
     call_status = open_sesame(user_num, testing)
 
     if call_status:
-        # everything appears to have worked, send a random success response
+        # everything appears to have worked, send a success response
         user_resp = random.choice(responses)+"\n\nUse Count: " + str(use_count)
         print("*Success*")
     else:
