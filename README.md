@@ -16,7 +16,7 @@ Previously, I used [spyrk](https://github.com/Alidron/spyrk) and the [Twilio RES
 [ParticleCloud](https://docs.particle.io/reference/device-cloud/api/) tells my Core/Photon when to close/open the relay. I have the two wires that connect to the "Door" button on my intercom also running into one of the simple mechanical relays - when the relay is closed, it's the same effect as pushing the button (the building's front door gets buzzed open).
 
 ### Twilio
-Twilio allows the Lambda to send/receive SMS messages to the user (and me in the event of failures or unauthorized use). This is the most costly part of the whole setup (I think it runs me something like a nickel per use), but Twilio helpfully provides test credentials that I can freely use for API validation.
+Twilio allows the Lambda to exchange SMS messages with the user (and me in the event of failures or unauthorized use). This is the most costly part of the whole setup (I think it runs me something like a nickel per use), but Twilio helpfully provides test credentials that I can freely use for API validation.
 
 ### Lambda
 [Lambda](https://aws.amazon.com/lambda/) is a compute service that runs your code in response to events. Events are triggered or invoked by resources in your AWS environment or via API Gateway. Here our Lambda function is triggered by an API Gateway endpoint that Twilio hits after an SMS is received. The Lambda function is responsible for hitting the Particle Core and returning a response to Twilio. Secret values, including the API tokens for Twilio and ParticleCloud, are stored as encrypted environment variables in the Lambda function.
