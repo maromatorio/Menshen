@@ -72,32 +72,33 @@ def number_lookup(user_num):
         name = "Stranger"
         use_count = 1
     else:
+        usr_result = dynamo_results['Items'][0]
         try:
-            name = dynamo_results['Items'][0]['name']
+            name = usr_result['name']
         except NameError as e:
             print("Error finding name for " + str(user_num))
             #print(e)
 
-        # how many times have they used the robot?
+        # how many times have they used the robot service?
         try:
-            use_count = dynamo_results['Items'][0]['use_count']
+            use_count = usr_result['use_count']
+            use_count += 1
+            users_table.update_item(
+                Key={'fromNumber': user_num},
+                UpdateExpression="set use_count = use_count+ :val",
+                ExpressionAttributeValues={':val': decimal.Decimal(1)},
+                ReturnValues="UPDATED_NEW"
+                )
         except NameError as e:
             print("Error finding use_count for " + str(user_num))
+            use_count = "unknown"
 
         # if you want to get cute, store custom responses as a list of strings
         try:
-            responses = dynamo_results['Items'][0]['responses']
+            responses = usr_result['responses']
         except KeyError as e:
             responses = ["Thanks for visiting!"]
 
-        # increment the use_count in Dynamo
-        use_count += 1
-        users_table.update_item(
-            Key={'fromNumber': user_num},
-            UpdateExpression="set use_count = use_count+ :val",
-            ExpressionAttributeValues={':val': decimal.Decimal(1)},
-            ReturnValues="UPDATED_NEW"
-            )
     return name, use_count, responses
 
 def signal_door(payload):
