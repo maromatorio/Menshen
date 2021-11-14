@@ -8,13 +8,13 @@ from base64 import b64decode      # decode encrypted environment variables
 from urllib import request, parse # to make API calls the old-fashioned way
 
 TWILIO_TEST_URL    = os.environ['TWILIO_TEST_URL']    # Twilio API URL
-TWILIO_TEST_FROM   = os.environ['TWILIO_TEST_FROM']   # Twilio API URL
-TWILIO_TEST_SID    = os.environ['TWILIO_TEST_SID']    # Twilio API URL
-TWILIO_TEST_TO     = os.environ['TWILIO_TEST_TO']     # Twilio API URL
-TWILIO_TEST_TOKEN  = os.environ['TWILIO_TEST_TOKEN']  # Twilio API URL
-PARTICLE_RELAY_URL = os.environ['PARTICLE_RELAY_URL'] # Twilio API URL
-PARTICLE_INFO_URL  = os.environ['PARTICLE_INFO_URL']  # Twilio API URL
-PARTICLE_TOKEN     = os.environ['PARTICLE_TOKEN']     # Twilio API URL
+TWILIO_TEST_FROM   = os.environ['TWILIO_TEST_FROM']   # Test Number
+TWILIO_TEST_SID    = os.environ['TWILIO_TEST_SID']    # Test SID
+TWILIO_TEST_TO     = os.environ['TWILIO_TEST_TO']     # Test Receiver
+TWILIO_TEST_TOKEN  = os.environ['TWILIO_TEST_TOKEN']  # Test Twil Token
+PARTICLE_RELAY_URL = os.environ['PARTICLE_RELAY_URL'] # Particle URL
+PARTICLE_INFO_URL  = os.environ['PARTICLE_INFO_URL']  # Particle URL
+PARTICLE_TOKEN     = os.environ['PARTICLE_TOKEN']     # Particle Token
 
 def lambda_handler(event, context):
     # if this stays true, we passed all tests
