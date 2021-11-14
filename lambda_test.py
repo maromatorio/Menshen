@@ -48,6 +48,7 @@ def lambda_handler(event, context):
         return {'statusCode': 400, 'body': 'TEST FAILURE'}
 
 def _test_twilio_api(txt, recip):
+    # test response of the twilio api
     print("*Testing Twilio API*")
     populated_url = TWILIO_TEST_URL.format(TWILIO_TEST_SID)
     d    = {"To": recip, "From": TWILIO_TEST_FROM, "Body": txt}
@@ -70,6 +71,7 @@ def _test_twilio_api(txt, recip):
         return e.code
 
 def _test_particle_api():
+    # test particle
     print('*Testing Particle API*')
     d    = {'access_token': PARTICLE_TOKEN}
     data = parse.urlencode(d).encode()
