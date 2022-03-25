@@ -71,6 +71,7 @@ def number_lookup(user_num):
         users_table.put_item(Item=new_entry)
         name = "Stranger"
         use_count = 1
+        responses = ["Looks like it's your first time. Thanks for visiting!"]
     else:
         usr_result = dynamo_results['Items'][0]
         try:
