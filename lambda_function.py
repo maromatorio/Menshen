@@ -64,6 +64,7 @@ def number_lookup(user_num):
 
     # new phone, who dis?
     if dynamo_results['Count'] == 0:
+        #TODO: Ask their name? May end up breaking flow
         new_entry = {'fromNumber': user_num,
             'use_count': 1,
             'name': 'Stranger'
